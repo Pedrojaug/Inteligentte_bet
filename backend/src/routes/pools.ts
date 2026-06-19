@@ -132,7 +132,7 @@ router.get('/my', authMiddleware, async (req: AuthRequest, res: Response): Promi
       orderBy: { joinedAt: 'desc' },
     });
 
-    res.json(memberships.map((m) => ({
+    res.json(memberships.map((m: any) => ({
       ...m.pool,
       myRole: m.role,
       myPaymentStatus: m.paymentStatus,
@@ -190,7 +190,7 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response): Prom
     }
 
     // Verifica se o usuário é membro
-    const membership = pool.members.find((m) => m.userId === req.userId);
+    const membership = pool.members.find((m: any) => m.userId === req.userId);
 
     res.json({
       ...pool,

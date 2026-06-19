@@ -20,12 +20,12 @@ router.get('/pool/:poolId', authMiddleware, async (req: AuthRequest, res: Respon
 
     // Calcula estatísticas adicionais
     const rankings = await Promise.all(
-      members.map(async (member, index) => {
+      members.map(async (member: any, index: number) => {
         const bets = await prisma.bet.findMany({
           where: { userId: member.userId, poolId: req.params.poolId, scored: true },
         });
 
-        const exactScores = bets.filter((b) => {
+        const exactScores = bets.filter((b: any) => {
           // Precisamos verificar se acertou exato
           return b.points > 0; // Simplificação — em produção, checar exato
         });
@@ -35,8 +35,8 @@ router.get('/pool/:poolId', authMiddleware, async (req: AuthRequest, res: Respon
           user: member.user,
           totalPoints: member.totalPoints,
           totalBets: bets.length,
-          scoredBets: bets.filter((b) => b.points > 0).length,
-          exactScores: bets.filter((b) => b.points >= 25).length,
+          scoredBets: bets.filter((b: any) => b.points > 0).length,
+          exactScores: bets.filter((b: any) => b.points >= 25).length,
           isCurrentUser: member.userId === req.userId,
         };
       })
