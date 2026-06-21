@@ -193,8 +193,12 @@ export default function PoolView() {
                     </td>
                     <td>
                       <div className="ranking-user">
-                        <div className="nav-avatar" style={{ width: 32, height: 32, fontSize: 'var(--font-xs)' }}>
-                          {m.user.name.charAt(0)}
+                        <div className="nav-avatar" style={{ width: 32, height: 32, fontSize: 'var(--font-xs)', overflow: 'hidden' }}>
+                          {m.user.avatarUrl ? (
+                            <img src={m.user.avatarUrl} alt={m.user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            m.user.name.charAt(0).toUpperCase()
+                          )}
                         </div>
                         {m.user.name}
                         {m.userId === user?.id && <span style={{ fontSize: 'var(--font-xs)', color: 'var(--green-400)' }}>(você)</span>}
@@ -218,8 +222,12 @@ export default function PoolView() {
             {pool.members.map((m) => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-sm) 0', borderBottom: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-md">
-                  <div className="nav-avatar" style={{ width: 36, height: 36, fontSize: 'var(--font-sm)' }}>
-                    {m.user.name.charAt(0)}
+                  <div className="nav-avatar" style={{ width: 36, height: 36, fontSize: 'var(--font-sm)', overflow: 'hidden' }}>
+                    {m.user.avatarUrl ? (
+                      <img src={m.user.avatarUrl} alt={m.user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      m.user.name.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div>
                     <div style={{ fontWeight: 600 }}>{m.user.name}</div>

@@ -7,61 +7,61 @@
 /* ─── CSS Custom Properties ────────────────────────────────── */
 :root {
   /* Primary Colors - from Bolão Logo */
-  --green-600: #1B7A2B;
-  --green-500: #2E9B3E;
-  --green-400: #00C853;
-  --green-300: #69F0AE;
+  --green-600: #0a7c29;
+  --green-500: #0ea83b;
+  --green-400: #00c853;
+  --green-300: #52ff9d;
   
-  --blue-600: #1565C0;
-  --blue-500: #1976D2;
-  --blue-400: #2196F3;
-  --blue-300: #64B5F6;
+  --blue-600: #0d47a1;
+  --blue-500: #1565c0;
+  --blue-400: #1e88e5;
+  --blue-300: #64b5f6;
   
-  --gold-500: #FFD700;
-  --gold-400: #FFC107;
-  --gold-300: #FFECB3;
+  --gold-500: #ffd700;
+  --gold-400: #ffc107;
+  --gold-300: #ffe082;
   
   /* Dark Theme */
-  --bg-primary: #0A1628;
-  --bg-secondary: #0F1D32;
-  --bg-surface: #121E33;
-  --bg-surface-hover: #182840;
-  --bg-card: rgba(18, 30, 51, 0.8);
-  --bg-card-hover: rgba(24, 40, 64, 0.9);
-  --bg-input: rgba(15, 29, 50, 0.9);
+  --bg-primary: #040912;
+  --bg-secondary: #070f1e;
+  --bg-surface: #0a172a;
+  --bg-surface-hover: #122543;
+  --bg-card: rgba(7, 15, 30, 0.65);
+  --bg-card-hover: rgba(14, 29, 56, 0.75);
+  --bg-input: rgba(5, 10, 20, 0.7);
   
   /* Text */
-  --text-primary: #F0F4F8;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --text-accent: #00C853;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-accent: #00c853;
   
   /* Borders */
-  --border-color: rgba(148, 163, 184, 0.12);
-  --border-focus: #2196F3;
-  --border-glow: rgba(33, 150, 243, 0.3);
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-focus: #00c853;
+  --border-glow: rgba(0, 200, 83, 0.25);
   
   /* Status Colors */
-  --success: #69F0AE;
-  --success-bg: rgba(105, 240, 174, 0.1);
-  --error: #FF5252;
-  --error-bg: rgba(255, 82, 82, 0.1);
-  --warning: #FFC107;
-  --warning-bg: rgba(255, 193, 7, 0.1);
-  --info: #64B5F6;
-  --info-bg: rgba(100, 181, 246, 0.1);
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.1);
+  --error: #f87171;
+  --error-bg: rgba(248, 113, 113, 0.1);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.1);
+  --info: #60a5fa;
+  --info-bg: rgba(96, 165, 250, 0.1);
   
   /* Live indicator */
-  --live-red: #FF1744;
+  --live-red: #ff1744;
   --live-glow: rgba(255, 23, 68, 0.4);
   
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #1B7A2B 0%, #00C853 100%);
-  --gradient-blue: linear-gradient(135deg, #1565C0 0%, #2196F3 100%);
-  --gradient-gold: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
-  --gradient-hero: linear-gradient(135deg, #0A1628 0%, #121E33 50%, #0F1D32 100%);
-  --gradient-card: linear-gradient(145deg, rgba(18, 30, 51, 0.9) 0%, rgba(15, 29, 50, 0.6) 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-primary: linear-gradient(135deg, #0ea83b 0%, #00c853 100%);
+  --gradient-blue: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
+  --gradient-gold: linear-gradient(135deg, #ffd700 0%, #ffa000 100%);
+  --gradient-hero: radial-gradient(circle at center, #0a1a32 0%, #040912 100%);
+  --gradient-card: linear-gradient(145deg, rgba(10, 23, 42, 0.75) 0%, rgba(5, 12, 24, 0.6) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
   
   /* Spacing */
   --space-xs: 0.25rem;
@@ -80,12 +80,12 @@
   --radius-full: 9999px;
   
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-glow-green: 0 0 20px rgba(0, 200, 83, 0.2);
-  --shadow-glow-blue: 0 0 20px rgba(33, 150, 243, 0.2);
-  --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.2);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow-green: 0 0 20px rgba(0, 200, 83, 0.15);
+  --shadow-glow-blue: 0 0 20px rgba(30, 136, 229, 0.15);
+  --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.15);
   
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -101,8 +101,8 @@
   
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ─── Reset & Base ─────────────────────────────────────────── */
@@ -120,7 +120,14 @@ html {
 
 body {
   font-family: var(--font-family);
-  background: var(--bg-primary);
+  background-color: var(--bg-primary);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+    radial-gradient(circle at 10% 20%, rgba(0, 200, 83, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(30, 136, 229, 0.08) 0%, transparent 45%);
+  background-size: 50px 50px, 50px 50px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
@@ -130,7 +137,7 @@ body {
 a {
   color: var(--blue-400);
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-fast);
 }
 a:hover {
   color: var(--blue-300);
@@ -403,20 +410,23 @@ img {
 /* ─── Cards ────────────────────────────────────────────────── */
 .card {
   background: var(--gradient-card);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   transition: all var(--transition-base);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 }
 
 .card:hover {
-  border-color: rgba(148, 163, 184, 0.2);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(0, 200, 83, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), var(--shadow-glow-green);
 }
 
 .card-highlight {
-  border-color: rgba(0, 200, 83, 0.3);
+  border-color: rgba(0, 200, 83, 0.35);
   box-shadow: var(--shadow-glow-green);
 }
 
@@ -430,6 +440,10 @@ img {
 .card-title {
   font-size: var(--font-lg);
   font-weight: 700;
+  background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ─── Forms & Inputs ───────────────────────────────────────── */
@@ -443,11 +457,12 @@ img {
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: var(--space-sm);
+  letter-spacing: 0.02em;
 }
 
 .form-input {
   width: 100%;
-  padding: var(--space-sm) var(--space-md);
+  padding: 12px 16px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -461,6 +476,7 @@ img {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--border-glow);
+  background: rgba(10, 22, 40, 0.8);
 }
 
 .form-input::placeholder {

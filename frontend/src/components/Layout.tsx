@@ -48,8 +48,12 @@ export default function Layout() {
 
           <div className="nav-user">
             <Link to="/profile" className={`nav-link ${isActive('/profile')}`}>
-              <div className="nav-avatar">
-                {user?.name?.charAt(0).toUpperCase()}
+              <div className="nav-avatar" style={{ overflow: 'hidden' }}>
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase()
+                )}
               </div>
               <span style={{ fontSize: '0.875rem' }}>{user?.name?.split(' ')[0]}</span>
             </Link>

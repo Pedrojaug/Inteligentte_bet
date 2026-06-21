@@ -137,7 +137,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
 // ─── PUT /api/auth/profile ────────────────
 router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, phone, cpf } = req.body;
+    const { name, phone, cpf, avatarUrl } = req.body;
     const cleanCpf = cpf ? cpf.replace(/\D/g, '') : undefined;
     const cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
 
@@ -147,6 +147,7 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): 
         ...(name && { name }),
         ...(cleanPhone && { phone: cleanPhone }),
         ...(cleanCpf && { cpf: cleanCpf }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
       },
       select: {
         id: true,
