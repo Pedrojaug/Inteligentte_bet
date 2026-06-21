@@ -11,6 +11,7 @@ import PoolMatches from './pages/PoolMatches';
 import LiveScores from './pages/LiveScores';
 import JoinPool from './pages/JoinPool';
 import Profile from './pages/Profile';
+import RecoverAccount from './pages/RecoverAccount';
 import { ReactNode } from 'react';
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -40,6 +41,7 @@ function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/recover" element={<PublicRoute><RecoverAccount /></PublicRoute>} />
       <Route path="/join/:code" element={<JoinPool />} />
 
       {/* Protected routes */}

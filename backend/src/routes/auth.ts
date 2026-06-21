@@ -32,13 +32,16 @@ router.post('/register', async (req, res: Response): Promise<void> => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const cleanCpf = cpf ? cpf.replace(/\D/g, '') : null;
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : null;
+
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        phone: phone || null,
-        cpf: cpf || null,
+        phone: cleanPhone,
+        cpf: cleanCpf,
       },
     });
 
@@ -135,13 +138,15 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
 router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, phone, cpf } = req.body;
+    const cleanCpf = cpf ? cpf.replace(/\D/g, '') : undefined;
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
 
     const user = await prisma.user.update({
       where: { id: req.userId },
       data: {
         ...(name && { name }),
-        ...(phone && { phone }),
-        ...(cpf && { cpf }),
+        ...(cleanPhone && { phone: cleanPhone }),
+        ...(cleanCpf && { cpf: cleanCpf }),
       },
       select: {
         id: true,
@@ -157,6 +162,81 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): 
   } catch (error) {
     console.error('[AUTH] Profile update error:', error);
     res.status(500).json({ error: 'Erro ao atualizar perfil' });
+  }
+});
+
+// ─── POST /api/auth/recover-email ──────────
+router.post('/recover-email', async (req, res: Response): Promise<void> => {
+  try {
+    const { cpf, phone } = req.body;
+
+    if (!cpf || !phone) {
+      res.status(400).json({ error: 'CPF e telefone são obrigatórios' });
+      return;
+    }
+
+    const cleanCpf = cpf.replace(/\D/g, '');
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    const user = await prisma.user.findFirst({
+      where: {
+        cpf: cleanCpf,
+        phone: cleanPhone,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'Nenhum usuário encontrado com estes dados' });
+      return;
+    }
+
+    res.json({ email: user.email });
+  } catch (error) {
+    console.error('[AUTH] Recover email error:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// ─── POST /api/auth/reset-password ─────────
+router.post('/reset-password', async (req, res: Response): Promise<void> => {
+  try {
+    const { email, cpf, newPassword } = req.body;
+
+    if (!email || !cpf || !newPassword) {
+      res.status(400).json({ error: 'Email, CPF e nova senha são obrigatórios' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'A nova senha deve ter no mínimo 6 caracteres' });
+      return;
+    }
+
+    const cleanCpf = cpf.replace(/\D/g, '');
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email,
+        cpf: cleanCpf,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'Usuário ou CPF não conferem' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    res.json({ message: 'Senha redefinida com sucesso!' });
+  } catch (error) {
+    console.error('[AUTH] Reset password error:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 

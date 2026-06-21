@@ -83,8 +83,9 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="auth-footer">
-          Não tem conta? <Link to="/register">Criar conta grátis</Link>
+        <div className="auth-footer" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+          <div>Esqueceu seus dados? <Link to="/recover">Recuperar conta</Link></div>
+          <div>Não tem conta? <Link to="/register">Criar conta grátis</Link></div>
         </div>
       </div>
     </div>
