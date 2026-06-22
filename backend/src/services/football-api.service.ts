@@ -133,6 +133,10 @@ function mapEvent(e: any): MatchData {
   };
 }
 
+// Matches take at most ~3.5h including extra time + penalties
+const MATCH_MAX_DURATION_MS = 3.5 * 60 * 60 * 1000;
+const STALE_LIVE_STATUSES = new Set(['LIVE', 'HALFTIME', 'EXTRA_TIME', 'PENALTIES']);
+
 export async function fetchWorldCupMatches(): Promise<MatchData[]> {
   // Fetch scoreboard (live/today) and full schedule in parallel
   const [scoreboardRes, scheduleRes] = await Promise.allSettled([
@@ -141,13 +145,26 @@ export async function fetchWorldCupMatches(): Promise<MatchData[]> {
   ]);
 
   const eventsMap = new Map<number, MatchData>();
+  const now = new Date();
 
   // Load schedule first (lower priority — may lack live scores)
   if (scheduleRes.status === 'fulfilled') {
     const events: any[] = scheduleRes.value.data.events || [];
     for (const e of events) {
       const mapped = mapEvent(e);
-      if (mapped.apiFootballId) eventsMap.set(mapped.apiFootballId, mapped);
+      if (!mapped.apiFootballId) continue;
+
+      // The schedule endpoint caches stale statuses. If ESPN still thinks a match
+      // is live/halftime but enough time has passed since kickoff, force FINISHED.
+      if (STALE_LIVE_STATUSES.has(mapped.status)) {
+        const expectedEndTime = new Date(mapped.matchDate.getTime() + MATCH_MAX_DURATION_MS);
+        if (expectedEndTime < now) {
+          mapped.status = 'FINISHED';
+          console.log(`[ESPN] Forced FINISHED for stale match ${mapped.apiFootballId} (${mapped.homeTeam} vs ${mapped.awayTeam})`);
+        }
+      }
+
+      eventsMap.set(mapped.apiFootballId, mapped);
     }
     console.log(`[ESPN] Schedule: ${events.length} events`);
   } else {

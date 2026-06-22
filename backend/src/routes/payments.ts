@@ -159,11 +159,19 @@ router.get('/my', authMiddleware, async (req: AuthRequest, res: Response): Promi
 // ─── POST /api/payments/webhook ─ Webhook ASAAS (público) ──
 router.post('/webhook', async (req, res: Response): Promise<void> => {
   try {
-    // Validação de segurança do Token de Autenticação do Asaas
     const webhookToken = req.headers['asaas-access-token'];
     const configuredToken = process.env.ASAAS_WEBHOOK_TOKEN;
-    if (configuredToken && webhookToken !== configuredToken) {
-      console.warn('[WEBHOOK] Tentativa de acesso não autorizada com token inválido');
+
+    // Rejeita se o token não está configurado (previne confirmação automática pelo sandbox)
+    // ou se o token recebido não bate com o esperado
+    if (!configuredToken) {
+      console.warn('[WEBHOOK] ASAAS_WEBHOOK_TOKEN não configurado — rejeitando webhook por segurança');
+      res.status(401).json({ error: 'Não autorizado' });
+      return;
+    }
+
+    if (webhookToken !== configuredToken) {
+      console.warn('[WEBHOOK] Token inválido recebido:', webhookToken);
       res.status(401).json({ error: 'Não autorizado' });
       return;
     }
