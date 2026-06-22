@@ -37,8 +37,9 @@ export default function JoinPool() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState('');
-  const [poolId, setPoolId] = useState<string | null>(null); // set after join → shows PixPayment
+  const [poolId, setPoolId] = useState<string | null>(null);
 
   useEffect(() => { loadPool(); }, [code]);
 
@@ -73,6 +74,19 @@ export default function JoinPool() {
       }
     } finally {
       setJoining(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!poolId) return;
+    setLeaving(true);
+    try {
+      await api.post(`/api/pools/${poolId}/leave`);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erro ao sair do bolão');
+    } finally {
+      setLeaving(false);
     }
   };
 
@@ -112,10 +126,26 @@ export default function JoinPool() {
             poolId={poolId}
             onConfirmed={() => navigate(`/pool/${poolId}/matches`)}
           />
-          <div style={{ marginTop: 'var(--space-lg)', textAlign: 'center' }}>
+          {error && <div className="alert alert-error" style={{ marginTop: 'var(--space-md)' }}>{error}</div>}
+          <div style={{ marginTop: 'var(--space-lg)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-sm)' }}>
             <Link to={`/pool/${poolId}`} style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)' }}>
               Pagar depois (acesse pelo bolão)
             </Link>
+            <button
+              onClick={handleLeave}
+              disabled={leaving}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--error)',
+                fontSize: 'var(--font-sm)',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: 0,
+              }}
+            >
+              {leaving ? 'Saindo...' : 'Desistir e sair do bolão'}
+            </button>
           </div>
         </div>
       </div>

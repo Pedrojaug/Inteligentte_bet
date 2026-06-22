@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Users, Trophy, Copy, Check, Share2, ArrowRight, Zap } from 'lucide-react';
@@ -50,11 +50,14 @@ interface Pool {
 export default function PoolView() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [pool, setPool] = useState<Pool | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'ranking' | 'members' | 'rules'>('ranking');
   const [prizes, setPrizes] = useState<any>(null);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState('');
 
   useEffect(() => { loadPool(); }, [id]);
 
@@ -70,6 +73,19 @@ export default function PoolView() {
       console.error('Error loading pool:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!pool) return;
+    setLeaving(true);
+    setLeaveError('');
+    try {
+      await api.post(`/api/pools/${pool.id}/leave`);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setLeaveError(err.response?.data?.error || 'Erro ao sair do bolão');
+      setLeaving(false);
     }
   };
 
@@ -193,6 +209,24 @@ export default function PoolView() {
             Pague via PIX para liberar sua aposta no bolão.
           </p>
           <PixPayment poolId={pool.id} onConfirmed={loadPool} />
+          {leaveError && <div className="alert alert-error" style={{ marginTop: 'var(--space-md)' }}>{leaveError}</div>}
+          <div style={{ marginTop: 'var(--space-lg)', textAlign: 'center' }}>
+            <button
+              onClick={handleLeave}
+              disabled={leaving}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--error)',
+                fontSize: 'var(--font-sm)',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: 0,
+              }}
+            >
+              {leaving ? 'Saindo...' : 'Desistir e sair do bolão'}
+            </button>
+          </div>
         </div>
       )}
 

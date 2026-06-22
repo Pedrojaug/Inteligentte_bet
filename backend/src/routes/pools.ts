@@ -251,6 +251,50 @@ router.post('/:id/join', authMiddleware, async (req: AuthRequest, res: Response)
   }
 });
 
+// ─── POST /api/pools/:id/leave ─ Sair (apenas com pagamento pendente) ────
+router.post('/:id/leave', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const membership = await prisma.poolMember.findUnique({
+      where: { userId_poolId: { userId: req.userId!, poolId: req.params.id } },
+    });
+
+    if (!membership) {
+      res.status(404).json({ error: 'Você não participa deste bolão' });
+      return;
+    }
+
+    if (membership.role === 'CREATOR') {
+      res.status(400).json({ error: 'O criador não pode sair do bolão' });
+      return;
+    }
+
+    if (membership.paymentStatus === 'CONFIRMED') {
+      res.status(400).json({ error: 'Não é possível sair após confirmar o pagamento' });
+      return;
+    }
+
+    // Remove pagamentos pendentes
+    await prisma.payment.deleteMany({
+      where: { userId: req.userId!, poolId: req.params.id, status: 'PENDING' },
+    });
+
+    // Remove apostas (caso existam)
+    await prisma.bet.deleteMany({
+      where: { userId: req.userId!, poolId: req.params.id },
+    });
+
+    // Remove membership
+    await prisma.poolMember.delete({
+      where: { userId_poolId: { userId: req.userId!, poolId: req.params.id } },
+    });
+
+    res.json({ message: 'Você saiu do bolão com sucesso' });
+  } catch (error) {
+    console.error('[POOLS] Leave error:', error);
+    res.status(500).json({ error: 'Erro ao sair do bolão' });
+  }
+});
+
 // ─── PUT /api/pools/:id ─ Editar (criador) ──
 router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
