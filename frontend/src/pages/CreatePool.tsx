@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Trophy, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -21,6 +21,7 @@ export default function CreatePool() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [matchSearch, setMatchSearch] = useState('');
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -82,6 +83,30 @@ export default function CreatePool() {
   const netPerPerson = form.entryFee - commission;
   const selectedMatch = matches.find((m) => m.id === form.matchId);
 
+  const filteredMatches = useMemo(() => {
+    const q = matchSearch.toLowerCase();
+    if (!q) return matches;
+    return matches.filter(
+      (m) =>
+        m.homeTeam.toLowerCase().includes(q) ||
+        m.awayTeam.toLowerCase().includes(q) ||
+        (m.round || '').toLowerCase().includes(q)
+    );
+  }, [matches, matchSearch]);
+
+  // Agrupa por data (dia)
+  const matchesByDate = useMemo(() => {
+    const groups: Record<string, Match[]> = {};
+    for (const m of filteredMatches) {
+      const day = new Date(m.matchDate).toLocaleDateString('pt-BR', {
+        weekday: 'long', day: '2-digit', month: '2-digit',
+      });
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(m);
+    }
+    return groups;
+  }, [filteredMatches]);
+
   return (
     <div style={{ maxWidth: '680px', margin: '0 auto' }}>
       <div className="page-header">
@@ -95,46 +120,93 @@ export default function CreatePool() {
         {/* Seleção do jogo */}
         <div className="card mb-lg">
           <h2 className="card-title mb-md">🎯 Jogo do Bolão</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-sm)', marginBottom: 'var(--space-md)' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-sm)', marginBottom: 'var(--space-lg)' }}>
             Todos os participantes apostam no placar deste jogo
           </p>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="match-select">Selecione o Jogo *</label>
-            <select
-              id="match-select"
-              name="matchId"
+          {/* Busca */}
+          <div style={{ position: 'relative', marginBottom: 'var(--space-lg)' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              type="text"
               className="form-input"
-              value={form.matchId}
-              onChange={handleChange}
-              required
-            >
-              <option value="">-- Escolha um jogo agendado --</option>
-              {matches.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.homeTeam} vs {m.awayTeam} — {formatDate(m.matchDate)} {m.round ? `(${m.round})` : ''}
-                </option>
-              ))}
-            </select>
+              placeholder="Buscar por seleção ou fase..."
+              value={matchSearch}
+              onChange={(e) => setMatchSearch(e.target.value)}
+              style={{ paddingLeft: '36px' }}
+            />
           </div>
 
-          {selectedMatch && (
-            <div className="match-card" style={{ marginTop: 'var(--space-md)' }}>
-              <div className="match-teams">
-                <div className="match-team">
-                  {selectedMatch.homeFlag && <img src={selectedMatch.homeFlag} alt={selectedMatch.homeTeam} />}
-                  <span className="match-team-name">{selectedMatch.homeTeam}</span>
-                </div>
-                <span className="match-vs">VS</span>
-                <div className="match-team">
-                  {selectedMatch.awayFlag && <img src={selectedMatch.awayFlag} alt={selectedMatch.awayTeam} />}
-                  <span className="match-team-name">{selectedMatch.awayTeam}</span>
+          {/* Cards por data */}
+          <div style={{ maxHeight: '420px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingRight: '4px' }}>
+            {Object.keys(matchesByDate).length === 0 && (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 'var(--space-lg)' }}>
+                Nenhum jogo encontrado
+              </p>
+            )}
+            {Object.entries(matchesByDate).map(([day, dayMatches]) => (
+              <div key={day}>
+                <p style={{ fontSize: 'var(--font-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 'var(--space-sm)' }}>
+                  {day}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                  {dayMatches.map((m) => {
+                    const selected = form.matchId === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, matchId: m.id }))}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
+                          padding: 'var(--space-md)',
+                          borderRadius: 'var(--radius-md)',
+                          border: selected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                          background: selected ? 'rgba(0,200,83,0.08)' : 'var(--surface-2)',
+                          cursor: 'pointer', textAlign: 'left', width: '100%',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {/* Bandeiras e times */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            {m.homeFlag
+                              ? <img src={m.homeFlag} alt={m.homeTeam} style={{ width: '28px', height: '20px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
+                              : <span style={{ fontSize: '20px' }}>🏳️</span>
+                            }
+                            <span style={{ fontWeight: 700, fontSize: 'var(--font-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.homeTeam}</span>
+                          </div>
+                          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-xs)', flexShrink: 0 }}>vs</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            {m.awayFlag
+                              ? <img src={m.awayFlag} alt={m.awayTeam} style={{ width: '28px', height: '20px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
+                              : <span style={{ fontSize: '20px' }}>🏳️</span>
+                            }
+                            <span style={{ fontWeight: 700, fontSize: 'var(--font-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.awayTeam}</span>
+                          </div>
+                        </div>
+                        {/* Horário */}
+                        <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                          {new Date(m.matchDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {/* Selecionado */}
+                        {selected && (
+                          <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div style={{ textAlign: 'center', marginTop: 'var(--space-sm)', color: 'var(--text-muted)', fontSize: 'var(--font-xs)' }}>
-                {selectedMatch.round} • {formatDate(selectedMatch.matchDate)}
-              </div>
-            </div>
+            ))}
+          </div>
+
+          {!form.matchId && (
+            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--error)', marginTop: 'var(--space-sm)' }}>
+              * Selecione um jogo para continuar
+            </p>
           )}
         </div>
 
