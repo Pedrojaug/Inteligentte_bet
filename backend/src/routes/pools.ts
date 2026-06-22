@@ -8,24 +8,10 @@ const router = Router();
 // ─── POST /api/pools ─ Criar bolão ────────
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const {
-      name,
-      description,
-      entryFee,
-      maxParticipants,
-      isPublic,
-      exactScorePoints,
-      winnerGoalDiffPts,
-      winnerOnlyPoints,
-      drawNoExactPoints,
-      prizeFirst,
-      prizeSecond,
-      prizeThird,
-      matchScope,
-    } = req.body;
+    const { name, description, entryFee, maxParticipants, isPublic, matchId, prizeFirst, prizeSecond, prizeThird } = req.body;
 
-    if (!name || !entryFee) {
-      res.status(400).json({ error: 'Nome e valor de entrada são obrigatórios' });
+    if (!name || !entryFee || !matchId) {
+      res.status(400).json({ error: 'Nome, valor de entrada e jogo são obrigatórios' });
       return;
     }
 
@@ -34,16 +20,24 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    // Valida que as porcentagens de premiação somam 100
-    const p1 = prizeFirst || 60;
-    const p2 = prizeSecond || 25;
-    const p3 = prizeThird || 15;
+    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    if (!match) {
+      res.status(404).json({ error: 'Jogo não encontrado' });
+      return;
+    }
+    if (match.status !== 'SCHEDULED') {
+      res.status(400).json({ error: 'Só é possível criar bolões para jogos ainda não iniciados' });
+      return;
+    }
+
+    const p1 = prizeFirst ?? 60;
+    const p2 = prizeSecond ?? 25;
+    const p3 = prizeThird ?? 15;
     if (p1 + p2 + p3 !== 100) {
       res.status(400).json({ error: 'As porcentagens de premiação devem somar 100%' });
       return;
     }
 
-    // Gera código único
     let code = generatePoolCode();
     let codeExists = await prisma.pool.findUnique({ where: { code } });
     while (codeExists) {
@@ -59,19 +53,16 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promis
         entryFee,
         maxParticipants: maxParticipants || 100,
         isPublic: isPublic !== undefined ? isPublic : true,
-        exactScorePoints: exactScorePoints || 25,
-        winnerGoalDiffPts: winnerGoalDiffPts || 18,
-        winnerOnlyPoints: winnerOnlyPoints || 10,
-        drawNoExactPoints: drawNoExactPoints || 15,
         prizeFirst: p1,
         prizeSecond: p2,
         prizeThird: p3,
-        matchScope: matchScope || 'ALL',
+        matchId,
         creatorId: req.userId!,
       },
+      include: { match: true },
     });
 
-    // Criador automaticamente é membro com role CREATOR e pagamento confirmado
+    // Criador automaticamente é membro com pagamento confirmado
     await prisma.poolMember.create({
       data: {
         userId: req.userId!,
@@ -97,12 +88,11 @@ router.get('/', async (req, res: Response): Promise<void> => {
       where: {
         isPublic: true,
         status: (status as any) || 'OPEN',
-        ...(search && {
-          name: { contains: search as string, mode: 'insensitive' },
-        }),
+        ...(search && { name: { contains: search as string, mode: 'insensitive' } }),
       },
       include: {
         creator: { select: { id: true, name: true, avatarUrl: true } },
+        match: true,
         _count: { select: { members: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -125,6 +115,7 @@ router.get('/my', authMiddleware, async (req: AuthRequest, res: Response): Promi
         pool: {
           include: {
             creator: { select: { id: true, name: true, avatarUrl: true } },
+            match: true,
             _count: { select: { members: true } },
           },
         },
@@ -151,6 +142,7 @@ router.get('/join/:code', async (req, res: Response): Promise<void> => {
       where: { code: req.params.code.toUpperCase() },
       include: {
         creator: { select: { id: true, name: true, avatarUrl: true } },
+        match: true,
         _count: { select: { members: true } },
       },
     });
@@ -174,11 +166,14 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response): Prom
       where: { id: req.params.id },
       include: {
         creator: { select: { id: true, name: true, avatarUrl: true } },
+        match: true,
         members: {
-          include: {
-            user: { select: { id: true, name: true, avatarUrl: true } },
-          },
+          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
           orderBy: { totalPoints: 'desc' },
+        },
+        bets: {
+          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+          orderBy: { createdAt: 'asc' },
         },
         _count: { select: { members: true, bets: true } },
       },
@@ -189,7 +184,6 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response): Prom
       return;
     }
 
-    // Verifica se o usuário é membro
     const membership = pool.members.find((m: any) => m.userId === req.userId);
 
     res.json({
@@ -228,7 +222,6 @@ router.post('/:id/join', authMiddleware, async (req: AuthRequest, res: Response)
       return;
     }
 
-    // Verifica se já é membro
     const existingMember = await prisma.poolMember.findUnique({
       where: { userId_poolId: { userId: req.userId!, poolId: pool.id } },
     });
@@ -238,7 +231,6 @@ router.post('/:id/join', authMiddleware, async (req: AuthRequest, res: Response)
       return;
     }
 
-    // Cria membro com pagamento pendente
     const member = await prisma.poolMember.create({
       data: {
         userId: req.userId!,
@@ -298,9 +290,7 @@ router.get('/:id/members', authMiddleware, async (req: AuthRequest, res: Respons
   try {
     const members = await prisma.poolMember.findMany({
       where: { poolId: req.params.id },
-      include: {
-        user: { select: { id: true, name: true, avatarUrl: true } },
-      },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
       orderBy: { totalPoints: 'desc' },
     });
 

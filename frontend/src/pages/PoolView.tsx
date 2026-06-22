@@ -4,6 +4,19 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Users, Trophy, Copy, Check, Share2, ArrowRight, Zap } from 'lucide-react';
 
+interface Match {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeFlag?: string;
+  awayFlag?: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  status: string;
+  matchDate: string;
+  round?: string;
+}
+
 interface Pool {
   id: string;
   name: string;
@@ -13,13 +26,10 @@ interface Pool {
   maxParticipants: number;
   status: string;
   isPublic: boolean;
-  exactScorePoints: number;
-  winnerGoalDiffPts: number;
-  winnerOnlyPoints: number;
-  drawNoExactPoints: number;
   prizeFirst: number;
   prizeSecond: number;
   prizeThird: number;
+  match: Match | null;
   creator: { id: string; name: string };
   members: Array<{
     id: string;
@@ -45,9 +55,7 @@ export default function PoolView() {
   const [activeTab, setActiveTab] = useState<'ranking' | 'members' | 'rules'>('ranking');
   const [prizes, setPrizes] = useState<any>(null);
 
-  useEffect(() => {
-    loadPool();
-  }, [id]);
+  useEffect(() => { loadPool(); }, [id]);
 
   const loadPool = async () => {
     try {
@@ -85,20 +93,26 @@ export default function PoolView() {
     }
   };
 
-  const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const formatCurrency = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   if (loading) return <div className="loading-spinner"><div className="spinner" /></div>;
   if (!pool) return <div className="empty-state"><h3 className="empty-state-title">Bolão não encontrado</h3></div>;
 
-  const confirmedMembers = pool.members.filter(m => m.paymentStatus === 'CONFIRMED');
+  const confirmedMembers = pool.members.filter((m) => m.paymentStatus === 'CONFIRMED');
   const topMembers = [...confirmedMembers].sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10);
+  const match = pool.match;
+  const matchStarted = match && match.status !== 'SCHEDULED';
 
   return (
     <div>
       {/* Header */}
       <div className="card mb-lg" style={{ borderColor: 'rgba(0, 200, 83, 0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-          <div>
+          <div style={{ flex: 1 }}>
             <div className="flex items-center gap-md mb-md">
               <h1 style={{ fontSize: 'var(--font-3xl)', fontWeight: 800 }}>{pool.name}</h1>
               <span className={`badge badge-${pool.status.toLowerCase()}`}>
@@ -121,13 +135,50 @@ export default function PoolView() {
             </div>
           </div>
 
-          <div className="flex gap-md">
-            <Link to={`/pool/${pool.id}/matches`} className="btn btn-primary">
-              <Trophy size={18} />
-              Apostar
-            </Link>
-          </div>
+          <Link to={`/pool/${pool.id}/matches`} className="btn btn-primary">
+            <Trophy size={18} />
+            {matchStarted ? 'Ver Palpites' : 'Apostar'}
+          </Link>
         </div>
+
+        {/* Jogo vinculado */}
+        {match && (
+          <div style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--border-color)' }}>
+            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-md)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Jogo do Bolão
+            </p>
+            <div className={`match-card ${matchStarted && match.status !== 'FINISHED' ? 'match-card-live' : ''}`}
+              style={{ background: 'var(--surface-2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
+                <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+                  {match.round} • {formatDate(match.matchDate)}
+                </span>
+                <span className={`badge badge-${match.status === 'LIVE' || match.status === 'HALFTIME' ? 'live' : match.status.toLowerCase()}`}>
+                  {match.status === 'LIVE' ? 'AO VIVO' : match.status === 'HALFTIME' ? 'INTERVALO' : match.status === 'FINISHED' ? 'ENCERRADO' : 'AGENDADO'}
+                </span>
+              </div>
+              <div className="match-teams">
+                <div className="match-team">
+                  {match.homeFlag && <img src={match.homeFlag} alt={match.homeTeam} />}
+                  <span className="match-team-name">{match.homeTeam}</span>
+                </div>
+                {matchStarted ? (
+                  <div className="match-score">
+                    <span>{match.homeScore ?? 0}</span>
+                    <span className="match-score-divider">×</span>
+                    <span>{match.awayScore ?? 0}</span>
+                  </div>
+                ) : (
+                  <span className="match-vs">VS</span>
+                )}
+                <div className="match-team">
+                  {match.awayFlag && <img src={match.awayFlag} alt={match.awayTeam} />}
+                  <span className="match-team-name">{match.awayTeam}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -163,16 +214,16 @@ export default function PoolView() {
           👥 Membros ({pool._count.members})
         </button>
         <button className={`tab ${activeTab === 'rules' ? 'active' : ''}`} onClick={() => setActiveTab('rules')}>
-          📋 Regras
+          📋 Premiação
         </button>
       </div>
 
-      {/* Ranking Tab */}
+      {/* Ranking */}
       {activeTab === 'ranking' && (
         <div className="card">
           {topMembers.length === 0 ? (
             <div className="empty-state">
-              <p>Nenhum ponto marcado ainda. Os pontos serão calculados após os jogos terminarem.</p>
+              <p>Pontos serão calculados após o jogo terminar.</p>
             </div>
           ) : (
             <table className="ranking-table">
@@ -215,7 +266,7 @@ export default function PoolView() {
         </div>
       )}
 
-      {/* Members Tab */}
+      {/* Members */}
       {activeTab === 'members' && (
         <div className="card">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
@@ -245,35 +296,32 @@ export default function PoolView() {
         </div>
       )}
 
-      {/* Rules Tab */}
+      {/* Rules / Prizes */}
       {activeTab === 'rules' && (
-        <div className="grid-2">
-          <div className="card">
-            <h3 className="card-title mb-md">🎯 Pontuação</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Placar exato</span><span className="font-bold text-green">{pool.exactScorePoints} pts</span></div>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Vencedor + saldo</span><span className="font-bold">{pool.winnerGoalDiffPts} pts</span></div>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Acertou empate</span><span className="font-bold">{pool.drawNoExactPoints} pts</span></div>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Só vencedor</span><span className="font-bold">{pool.winnerOnlyPoints} pts</span></div>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Errou</span><span className="font-bold" style={{ color: 'var(--error)' }}>0 pts</span></div>
-            </div>
+        <div className="card">
+          <h3 className="card-title mb-md">🏆 Distribuição da Premiação</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            <div className="flex justify-between"><span>🥇 1º lugar</span><span className="font-bold text-gold">{pool.prizeFirst}%</span></div>
+            <div className="flex justify-between"><span>🥈 2º lugar</span><span className="font-bold">{pool.prizeSecond}%</span></div>
+            <div className="flex justify-between"><span>🥉 3º lugar</span><span className="font-bold">{pool.prizeThird}%</span></div>
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: 'var(--space-sm) 0' }} />
+            <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Comissão da casa</span><span style={{ color: 'var(--text-muted)' }}>10%</span></div>
+            {prizes && (
+              <>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: 'var(--space-sm) 0' }} />
+                <div className="flex justify-between"><span>🥇 Valor 1º</span><span className="font-bold text-gold">{formatCurrency(prizes.prizes.first.amount)}</span></div>
+                <div className="flex justify-between"><span>🥈 Valor 2º</span><span className="font-bold">{formatCurrency(prizes.prizes.second.amount)}</span></div>
+                <div className="flex justify-between"><span>🥉 Valor 3º</span><span className="font-bold">{formatCurrency(prizes.prizes.third.amount)}</span></div>
+              </>
+            )}
           </div>
-          <div className="card">
-            <h3 className="card-title mb-md">🏆 Premiação</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              <div className="flex justify-between"><span>🥇 1º lugar</span><span className="font-bold text-gold">{pool.prizeFirst}%</span></div>
-              <div className="flex justify-between"><span>🥈 2º lugar</span><span className="font-bold">{pool.prizeSecond}%</span></div>
-              <div className="flex justify-between"><span>🥉 3º lugar</span><span className="font-bold">{pool.prizeThird}%</span></div>
-              <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: 'var(--space-sm) 0' }} />
-              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Comissão da casa</span><span style={{ color: 'var(--text-muted)' }}>10%</span></div>
-              {prizes && (
-                <>
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: 'var(--space-sm) 0' }} />
-                  <div className="flex justify-between"><span>🥇 Valor 1º</span><span className="font-bold text-gold">{formatCurrency(prizes.prizes.first.amount)}</span></div>
-                  <div className="flex justify-between"><span>🥈 Valor 2º</span><span className="font-bold">{formatCurrency(prizes.prizes.second.amount)}</span></div>
-                  <div className="flex justify-between"><span>🥉 Valor 3º</span><span className="font-bold">{formatCurrency(prizes.prizes.third.amount)}</span></div>
-                </>
-              )}
+          <div style={{ marginTop: 'var(--space-lg)', padding: 'var(--space-md)', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)' }}>
+            <p style={{ fontWeight: 700, marginBottom: 'var(--space-sm)' }}>🎯 Como funciona a pontuação</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>
+              <span>Placar exato → <strong style={{ color: 'var(--primary)' }}>3 pontos</strong></span>
+              <span>Saldo de gols e vencedor corretos → <strong>2 pontos</strong></span>
+              <span>Apenas vencedor correto → <strong>1 ponto</strong></span>
+              <span>Errou → <strong style={{ color: 'var(--error)' }}>0 pontos</strong></span>
             </div>
           </div>
         </div>
