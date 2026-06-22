@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Users, Trophy, Copy, Check, Share2, ArrowRight, Zap } from 'lucide-react';
+import PixPayment from '../components/PixPayment';
 
 interface Match {
   id: string;
@@ -102,6 +103,7 @@ export default function PoolView() {
   if (loading) return <div className="loading-spinner"><div className="spinner" /></div>;
   if (!pool) return <div className="empty-state"><h3 className="empty-state-title">Bolão não encontrado</h3></div>;
 
+  const isPendingPayment = pool.isMember && pool.myPaymentStatus === 'PENDING';
   const confirmedMembers = pool.members.filter((m) => m.paymentStatus === 'CONFIRMED');
   const topMembers = [...confirmedMembers].sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10);
   const match = pool.match;
@@ -180,6 +182,19 @@ export default function PoolView() {
           </div>
         )}
       </div>
+
+      {/* Card de pagamento pendente */}
+      {isPendingPayment && (
+        <div className="card mb-lg" style={{ borderColor: 'rgba(255,180,0,0.3)', background: 'rgba(255,180,0,0.04)' }}>
+          <h2 style={{ fontWeight: 800, fontSize: 'var(--font-xl)', marginBottom: 'var(--space-sm)' }}>
+            💳 Confirme seu pagamento para apostar
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-sm)', marginBottom: 'var(--space-lg)' }}>
+            Pague via PIX para liberar sua aposta no bolão.
+          </p>
+          <PixPayment poolId={pool.id} onConfirmed={loadPool} />
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid-4 mb-lg">
