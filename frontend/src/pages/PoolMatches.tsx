@@ -100,10 +100,29 @@ export default function PoolMatches() {
     }
   };
 
-  const filteredMatches = matches.filter((m) => {
-    if (filterStage === 'ALL') return true;
-    return m.stage === filterStage;
-  });
+  const LIVE_STATUSES = ['LIVE', 'HALFTIME', 'EXTRA_TIME', 'PENALTIES'];
+
+  function matchPriority(m: Match): number {
+    if (m.status === 'SCHEDULED') return 0;
+    if (LIVE_STATUSES.includes(m.status)) return 1;
+    return 2; // FINISHED, CANCELLED, etc.
+  }
+
+  const filteredMatches = matches
+    .filter((m) => {
+      if (filterStage === 'ALL') return true;
+      return m.stage === filterStage;
+    })
+    .sort((a, b) => {
+      const pa = matchPriority(a);
+      const pb = matchPriority(b);
+      if (pa !== pb) return pa - pb;
+      // Within SCHEDULED: closest to now first
+      // Within LIVE: earliest start first
+      // Within FINISHED: most recent first
+      const dir = a.status === 'FINISHED' ? -1 : 1;
+      return dir * (new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+    });
 
   const formatDate = (date: string) => {
     const d = new Date(date);

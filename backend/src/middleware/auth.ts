@@ -22,7 +22,9 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   const token = parts[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { id: string };
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET not configured');
+    const decoded = jwt.verify(token, jwtSecret) as { id: string };
     req.userId = decoded.id;
     next();
   } catch {

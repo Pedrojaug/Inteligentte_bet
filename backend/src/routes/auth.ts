@@ -47,7 +47,7 @@ router.post('/register', async (req, res: Response): Promise<void> => {
 
     const token = jwt.sign(
       { id: user.id },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 
@@ -85,7 +85,7 @@ router.post('/login', async (req, res: Response): Promise<void> => {
 
     const token = jwt.sign(
       { id: user.id },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 

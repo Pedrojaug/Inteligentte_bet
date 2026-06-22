@@ -1,7 +1,20 @@
 import { Router, Response } from 'express';
 import prisma from '../utils/prisma';
+import { syncMatches } from '../jobs/syncMatches';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
+
+// ─── POST /api/matches/sync ─ Sincronizar manual ──
+router.post('/sync', authMiddleware, async (_req, res: Response): Promise<void> => {
+  try {
+    await syncMatches();
+    res.json({ message: 'Jogos sincronizados com sucesso!' });
+  } catch (error) {
+    console.error('[MATCHES] Manual sync error:', error);
+    res.status(500).json({ error: 'Erro ao sincronizar jogos' });
+  }
+});
 
 // ─── GET /api/matches ─ Listar jogos ──────
 router.get('/', async (req, res: Response): Promise<void> => {

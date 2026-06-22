@@ -11,8 +11,14 @@ import matchRoutes from './routes/matches';
 import paymentRoutes from './routes/payments';
 import rankingRoutes from './routes/rankings';
 import { syncMatches, calculateFinishedMatchScores } from './jobs/syncMatches';
+import prisma from './utils/prisma';
 
 dotenv.config();
+
+if (!process.env.JWT_SECRET) {
+  console.error('[STARTUP] FATAL: JWT_SECRET environment variable is not set.');
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -87,10 +93,21 @@ cron.schedule('0 0-9 * * *', async () => {
 });
 
 // ─── Start Server ─────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`\n⚽ Bolão Inteligentte API running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📡 CORS origin: ${process.env.FRONTEND_URL || 'http://localhost:5173'}\n`);
+
+  // Seeding inicial no startup se o banco estiver vazio
+  try {
+    const matchCount = await prisma.match.count();
+    if (matchCount === 0) {
+      console.log('[STARTUP] Nenhum jogo encontrado no banco. Iniciando sincronização/seeding de jogos...');
+      await syncMatches();
+    }
+  } catch (error) {
+    console.error('[STARTUP] Erro ao sincronizar jogos no startup:', error);
+  }
 });
 
 export default app;
