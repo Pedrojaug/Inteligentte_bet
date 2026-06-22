@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Users, Trophy, Copy, Check, Share2, ArrowRight, Zap } from 'lucide-react';
+import { Users, Trophy, Copy, Check, Share2, ArrowRight, Zap, Trash2 } from 'lucide-react';
 import PixPayment from '../components/PixPayment';
 
 interface Match {
@@ -58,6 +58,8 @@ export default function PoolView() {
   const [prizes, setPrizes] = useState<any>(null);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => { loadPool(); }, [id]);
 
@@ -86,6 +88,19 @@ export default function PoolView() {
     } catch (err: any) {
       setLeaveError(err.response?.data?.error || 'Erro ao sair do bolão');
       setLeaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!pool) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/pools/${pool.id}`);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setConfirmDelete(false);
+      setDeleting(false);
+      alert(err.response?.data?.error || 'Erro ao apagar bolão');
     }
   };
 
@@ -120,6 +135,8 @@ export default function PoolView() {
   if (!pool) return <div className="empty-state"><h3 className="empty-state-title">Bolão não encontrado</h3></div>;
 
   const isPendingPayment = pool.isMember && pool.myPaymentStatus === 'PENDING';
+  const isCreator = pool.myRole === 'CREATOR';
+  const canDelete = isCreator && pool._count.members <= 1;
   const confirmedMembers = pool.members.filter((m) => m.paymentStatus === 'CONFIRMED');
   const topMembers = [...confirmedMembers].sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10);
   const match = pool.match;
@@ -153,10 +170,39 @@ export default function PoolView() {
             </div>
           </div>
 
-          <Link to={`/pool/${pool.id}/matches`} className="btn btn-primary">
-            <Trophy size={18} />
-            {matchStarted ? 'Ver Palpites' : 'Apostar'}
-          </Link>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+            {canDelete && (
+              confirmDelete ? (
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                  <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)' }}>Confirmar?</span>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: 'var(--error)', color: '#fff' }}
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Apagando...' : 'Sim, apagar'}
+                  </button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setConfirmDelete(false)}>
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="btn btn-sm btn-ghost"
+                  style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 size={16} />
+                  Apagar
+                </button>
+              )
+            )}
+            <Link to={`/pool/${pool.id}/matches`} className="btn btn-primary">
+              <Trophy size={18} />
+              {matchStarted ? 'Ver Palpites' : 'Apostar'}
+            </Link>
+          </div>
         </div>
 
         {/* Jogo vinculado */}

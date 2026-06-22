@@ -62,7 +62,6 @@ router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promis
       include: { match: true },
     });
 
-    // Criador automaticamente é membro com pagamento confirmado
     await prisma.poolMember.create({
       data: {
         userId: req.userId!,
@@ -264,7 +263,7 @@ router.post('/:id/leave', authMiddleware, async (req: AuthRequest, res: Response
     }
 
     if (membership.role === 'CREATOR') {
-      res.status(400).json({ error: 'O criador não pode sair do bolão' });
+      res.status(400).json({ error: 'O criador não pode sair do bolão. Use a opção de apagar o bolão.' });
       return;
     }
 
@@ -273,17 +272,14 @@ router.post('/:id/leave', authMiddleware, async (req: AuthRequest, res: Response
       return;
     }
 
-    // Remove pagamentos pendentes
     await prisma.payment.deleteMany({
       where: { userId: req.userId!, poolId: req.params.id, status: 'PENDING' },
     });
 
-    // Remove apostas (caso existam)
     await prisma.bet.deleteMany({
       where: { userId: req.userId!, poolId: req.params.id },
     });
 
-    // Remove membership
     await prisma.poolMember.delete({
       where: { userId_poolId: { userId: req.userId!, poolId: req.params.id } },
     });
@@ -292,6 +288,43 @@ router.post('/:id/leave', authMiddleware, async (req: AuthRequest, res: Response
   } catch (error) {
     console.error('[POOLS] Leave error:', error);
     res.status(500).json({ error: 'Erro ao sair do bolão' });
+  }
+});
+
+// ─── DELETE /api/pools/:id ─ Apagar bolão (criador, sem outros membros) ────
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const pool = await prisma.pool.findUnique({
+      where: { id: req.params.id },
+      include: { _count: { select: { members: true } } },
+    });
+
+    if (!pool) {
+      res.status(404).json({ error: 'Bolão não encontrado' });
+      return;
+    }
+
+    if (pool.creatorId !== req.userId) {
+      res.status(403).json({ error: 'Apenas o criador pode apagar o bolão' });
+      return;
+    }
+
+    // Permite apagar apenas se o único membro for o próprio criador
+    if (pool._count.members > 1) {
+      res.status(400).json({ error: 'Não é possível apagar o bolão com participantes inscritos' });
+      return;
+    }
+
+    // Remove tudo na ordem certa
+    await prisma.payment.deleteMany({ where: { poolId: pool.id } });
+    await prisma.bet.deleteMany({ where: { poolId: pool.id } });
+    await prisma.poolMember.deleteMany({ where: { poolId: pool.id } });
+    await prisma.pool.delete({ where: { id: pool.id } });
+
+    res.json({ message: 'Bolão apagado com sucesso' });
+  } catch (error) {
+    console.error('[POOLS] Delete error:', error);
+    res.status(500).json({ error: 'Erro ao apagar bolão' });
   }
 });
 
